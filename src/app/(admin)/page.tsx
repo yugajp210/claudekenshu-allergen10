@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   UtensilsCrossed,
@@ -10,12 +11,14 @@ import {
   ArrowRight,
   Plus,
   Clock,
+  Salad,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import { inferAllergens } from "@/lib/ingredients";
 import { SPECIFIED_ALLERGENS } from "@/lib/allergens";
 import { AllergenBadge, AllergenList } from "@/components/allergen-badge";
@@ -23,7 +26,7 @@ import { MenuImage } from "@/components/menu-image";
 import { MENU_CATEGORY_LABELS } from "@/lib/menus";
 
 export default function Home() {
-  const { menus } = useStore();
+  const { menus, settings } = useStore();
 
   const stats = React.useMemo(() => {
     const total = menus.length;
@@ -57,35 +60,13 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border bg-gradient-to-br from-primary to-emerald-700 text-white p-5 sm:p-6 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold tracking-wider uppercase opacity-80">ようこそ、山田さん</p>
-            <h2 className="mt-1 text-xl sm:text-2xl font-bold">
-              本日のアレルゲン点検
-            </h2>
-            <p className="mt-1 text-sm opacity-90">
-              {stats.missingMenus > 0
-                ? `${stats.missingMenus}件のメニューに表示漏れの可能性があります。`
-                : "すべてのメニューでアレルゲン表示が完了しています。"}
-            </p>
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <Button asChild size="sm" variant="secondary">
-              <Link href="/check">
-                <ShieldCheck className="size-4" />
-                点検を開始
-              </Link>
-            </Button>
-            <Button asChild size="sm" className="bg-white/15 hover:bg-white/25 text-white border border-white/20">
-              <Link href="/menus/new">
-                <Plus className="size-4" />
-                登録
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
+      <DashboardHero
+        userName={settings.profile.name}
+        missingMenus={stats.missingMenus}
+        totalMenus={stats.total}
+        publishedMenus={stats.published}
+        menuPhotos={menus.filter((m) => m.image).slice(0, 6).map((m) => ({ id: m.id, name: m.name, image: m.image! }))}
+      />
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
@@ -253,6 +234,144 @@ export default function Home() {
           </ul>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function DashboardHero({
+  userName,
+  missingMenus,
+  totalMenus,
+  publishedMenus,
+  menuPhotos,
+}: {
+  userName: string;
+  missingMenus: number;
+  totalMenus: number;
+  publishedMenus: number;
+  menuPhotos: { id: string; name: string; image: string }[];
+}) {
+  // 表紙に使う 5 枚を抽出
+  const photos = menuPhotos.slice(0, 5);
+
+  return (
+    <section className="relative overflow-hidden rounded-2xl shadow-sm text-white min-h-[320px] sm:min-h-[360px] md:min-h-[400px]">
+      {/* ==== Photo mosaic background ==== */}
+      <div className="absolute inset-0 -z-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 h-full gap-0.5 bg-white">
+          {photos.map((p, i) => (
+            <div
+              key={p.id}
+              className={cn(
+                "relative overflow-hidden",
+                // 3〜5 列目を sm 未満で隠す
+                i >= 3 && "hidden sm:block",
+                i >= 3 && i < 5 && "sm:hidden md:block"
+              )}
+            >
+              <Image
+                src={p.image}
+                alt={p.name}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
+                priority={i < 2}
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Dark gradient overlay for text legibility */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-emerald-950/95 via-emerald-950/70 to-emerald-950/40" />
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-950/85 via-emerald-950/40 to-transparent" />
+
+      {/* ==== Top corner chips ==== */}
+      <div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-10 flex items-center gap-2">
+        <div className="bg-white text-emerald-700 rounded-lg p-2 shadow-lg">
+          <Salad className="size-4" strokeWidth={2.5} />
+        </div>
+        <div className="rounded-lg bg-white/95 backdrop-blur px-3 py-1.5 shadow-md">
+          <div className="text-[10px] font-bold tracking-[0.15em] uppercase text-emerald-700">Today&apos;s Kitchen</div>
+          <div className="text-xs font-black text-stone-900 leading-tight">{totalMenus} 品のメニューを管理中</div>
+        </div>
+      </div>
+
+      <div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-10 hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur rounded-full px-2.5 py-1 shadow-md">
+        <div className="flex -space-x-1.5">
+          {["YT", "SH", "SI"].map((i, idx) => (
+            <span
+              key={i}
+              className={cn(
+                "inline-flex size-6 items-center justify-center rounded-full text-white text-[9px] font-bold ring-2 ring-white",
+                idx === 0 && "bg-emerald-500",
+                idx === 1 && "bg-amber-500",
+                idx === 2 && "bg-rose-500"
+              )}
+            >
+              {i}
+            </span>
+          ))}
+        </div>
+        <span className="text-[11px] font-bold text-stone-700">チーム</span>
+      </div>
+
+      {/* ==== Main content (bottom) ==== */}
+      <div className="relative h-full flex flex-col justify-end p-5 sm:p-7 md:p-9 pt-24 sm:pt-28 md:pt-32">
+        <p className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-bold tracking-[0.18em] uppercase opacity-90">
+          <span className="size-1.5 rounded-full bg-emerald-300 animate-pulse" />
+          ようこそ、{userName} さん
+        </p>
+        <h2 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-black tracking-tight leading-[1.15] drop-shadow-lg">
+          本日のアレルゲン点検
+        </h2>
+        <p className="mt-2 text-sm sm:text-base opacity-95 leading-relaxed max-w-2xl drop-shadow">
+          {missingMenus > 0 ? (
+            <>
+              <strong className="text-amber-200">{missingMenus} 件</strong>のメニューに表示漏れの可能性があります。
+              今すぐ点検して、表示の正確性を保ちましょう。
+            </>
+          ) : (
+            <>すべてのメニューでアレルゲン表示が完了しています。引き続き安心の運営を。</>
+          )}
+        </p>
+
+        <div className="mt-4 sm:mt-5 flex flex-col-reverse sm:flex-row sm:items-end sm:justify-between gap-4">
+          <dl className="flex items-center gap-4 sm:gap-5 text-xs">
+            <HeroStat label="登録メニュー" value={`${totalMenus}件`} />
+            <span className="h-6 w-px bg-white/30" />
+            <HeroStat label="公開中" value={`${publishedMenus}件`} />
+            <span className="h-6 w-px bg-white/30" />
+            <HeroStat label="要対応" value={`${missingMenus}件`} highlight={missingMenus > 0} />
+          </dl>
+
+          <div className="flex gap-2 sm:gap-3 shrink-0">
+            <Button asChild size="default" variant="secondary" className="rounded-full font-bold shadow-md">
+              <Link href="/check">
+                <ShieldCheck className="size-4" />
+                点検を開始
+              </Link>
+            </Button>
+            <Button asChild size="default" className="rounded-full bg-white/15 hover:bg-white/25 text-white border border-white/30 backdrop-blur font-semibold">
+              <Link href="/menus/new">
+                <Plus className="size-4" />
+                新規登録
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="leading-tight">
+      <div className={cn("text-base sm:text-lg font-black tabular-nums", highlight ? "text-amber-200" : "text-white")}>
+        {value}
+      </div>
+      <div className="text-[10px] tracking-wider uppercase opacity-80">{label}</div>
     </div>
   );
 }

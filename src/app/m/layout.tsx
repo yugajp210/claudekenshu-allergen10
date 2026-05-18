@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./m.css";
 
 export const metadata: Metadata = {
   title: "メニュー | アレルゲン管理キッチン",
@@ -6,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function PublicMenuLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-stone-50 text-foreground">{children}</div>;
+  return <div className="m-site min-h-screen bg-white text-foreground">{children}</div>;
 }

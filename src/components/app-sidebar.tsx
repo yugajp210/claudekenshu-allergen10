@@ -3,10 +3,12 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UtensilsCrossed, FilePlus2, ShieldCheck, BarChart3, Salad, Bell, ChevronLeft, Settings, Database, Truck, ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LayoutDashboard, UtensilsCrossed, FilePlus2, ShieldCheck, BarChart3, Salad, Bell, ChevronLeft, Settings, Database, Truck, ExternalLink, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 
 type NavItem = {
   href: string;
@@ -132,21 +134,44 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
 function ProfileSection({ onNavigate }: { onNavigate?: () => void }) {
   const { settings } = useStore();
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm("ログアウトしますか?")) {
+      signOut();
+      onNavigate?.();
+      router.replace("/login");
+    }
+  };
+
   return (
-    <Link
-      href="/settings"
-      onClick={onNavigate}
-      className="border-t border-sidebar-border px-5 py-3 flex items-center gap-3 hover:bg-sidebar-accent/40 transition-colors"
-    >
-      <div className="size-8 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-        {settings.profile.initials}
-      </div>
-      <div className="flex flex-col leading-tight min-w-0 flex-1">
-        <span className="text-xs font-semibold truncate">{settings.profile.name}</span>
-        <span className="text-[10px] text-muted-foreground truncate">{settings.profile.role}</span>
-      </div>
-      <Settings className="size-3.5 text-muted-foreground shrink-0" />
-    </Link>
+    <div className="border-t border-sidebar-border flex items-stretch">
+      <Link
+        href="/settings"
+        onClick={onNavigate}
+        className="px-5 py-3 flex items-center gap-3 hover:bg-sidebar-accent/40 transition-colors flex-1 min-w-0"
+      >
+        <div className="size-8 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+          {settings.profile.initials}
+        </div>
+        <div className="flex flex-col leading-tight min-w-0 flex-1">
+          <span className="text-xs font-semibold truncate">{settings.profile.name}</span>
+          <span className="text-[10px] text-muted-foreground truncate">{settings.profile.role}</span>
+        </div>
+      </Link>
+      <button
+        type="button"
+        onClick={handleSignOut}
+        className="px-3 flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors border-l border-sidebar-border"
+        aria-label="ログアウト"
+        title="ログアウト"
+      >
+        <LogOut className="size-4" />
+      </button>
+    </div>
   );
 }
 
